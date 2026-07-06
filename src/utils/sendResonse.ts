@@ -18,7 +18,7 @@ type TMeta = {
 
 export const sendResponse = <T>(res:Response,data:TResponse<T>)=>{
     res.status(data.statusCode).json({
-        sucess:data.success,
+        success:data.success,
         statusCode:data.statusCode,
         message:data.message,
         data:data.data,

@@ -8,7 +8,7 @@ import httpStatus from "http-status"
 const registerUserDB = async (payload: RegisterUser) => {
     const { name, email, password, role, status } = payload;
 
-    try {
+  
         const hashPassword = await bcrypt.hash(password, Number(config.bycrypt_salt_rounds ?? 10));
 
         const createUser = await prisma.user.create({
@@ -40,16 +40,9 @@ const registerUserDB = async (payload: RegisterUser) => {
         });
 
         return user;
-    } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-            const err = new Error("User with this email already exists") as Error & { statusCode?: number };
-            err.statusCode = 409;
-            throw err;
-        }
+    } 
+    
 
-        throw error;
-    }
-};
 
 // const userProfileIntoDb = async(userId:string)=>{
 //     const user = await prisma.user.findUniqueOrThrow({

@@ -7,23 +7,13 @@ import httpStatus from "http-status";
 const registerUser = catchAsync(async (req: Request, res: Response) => {
     const payload = req.body;
 
-    try {
-        const user = await userService.registerUserDB(payload);
-        sendResponse(res, {
-            success: true,
-            message: "Customer created successfully",
-            statusCode: httpStatus.CREATED,
-            data: user,
-        });
-    } catch (error) {
-        const err = error as Error & { statusCode?: number };
-        sendResponse(res, {
-            success: false,
-            message: err.message || "Failed to create user",
-            statusCode: err.statusCode ?? httpStatus.INTERNAL_SERVER_ERROR,
-            data: null,
-        });
-    }
+    const user = await userService.registerUserDB(payload);
+    sendResponse(res, {
+        success: true,
+        message: "Customer created successfully",
+        statusCode: httpStatus.CREATED,
+        data: user,
+    });
 });
 
 // const userProfile = catchAsync(async(req:Request,res:Response)=>{

@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from "express"
+import express, { Application, NextFunction, Request, Response } from "express"
 import config from "./config";
 import cors from "cors"
 import cookieParser from "cookie-parser";
@@ -7,6 +7,10 @@ import { router } from "./user/user.route";
 import { authRouter } from "./auth/auth.route";
 import { categoryRouter } from "./category/category.route";
 import { gearRouter } from "./gear/gear.route";
+import { notFound } from "./middleware/notFound";
+import httpStatus from "http-status";
+import { STATUS_CODES } from "node:http";
+import { globalErrorHandler } from "./middleware/globalErrorHandler";
 
 const app:Application = express();
 
@@ -35,6 +39,11 @@ app.use("/api/auth",authRouter)
 app.use("/api/gear", gearRouter);
 
 app.use("/api/categories",categoryRouter)
+
+
+app.use(notFound)
+
+app.use(globalErrorHandler)
 
 
 export default app
