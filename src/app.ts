@@ -6,6 +6,7 @@ import { prisma } from "./lib/prisma";
 import { router } from "./user/user.route";
 import { authRouter } from "./auth/auth.route";
 import { categoryRouter } from "./category/category.route";
+import { gearRouter } from "./gear/gear.route";
 
 const app:Application = express();
 
@@ -31,7 +32,7 @@ app.use("/api/auth",router)
 
 app.use("/api/auth",authRouter)
 
-
+app.use("/api/gear", gearRouter);
 
 app.use("/api/categories",categoryRouter)
 
