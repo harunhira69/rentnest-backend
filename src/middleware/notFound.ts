@@ -1,9 +1,14 @@
 import { Request, Response } from "express";
+import httpStatus from "http-status";
+
 
 export const notFound = (req:Request,res:Response)=>{
-res.status(404).json({
-    message:"Route Not Found",
+res.status(httpStatus.NOT_FOUND).json({
+success:false,
+message:"API route not found",
+errorDetails:{
     path:req.originalUrl,
-    date:Date()
-})
-}
+    method:req.method
+},
+});
+};

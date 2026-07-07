@@ -3,14 +3,16 @@ import config from "./config";
 import cors from "cors"
 import cookieParser from "cookie-parser";
 import { prisma } from "./lib/prisma";
-import { router } from "./user/user.route";
+
 import { authRouter } from "./auth/auth.route";
-import { categoryRouter } from "./category/category.route";
-import { gearRoute} from "./gear/gear.route";
+
 import { notFound } from "./middleware/notFound";
 import httpStatus from "http-status";
 import { STATUS_CODES } from "node:http";
 import { globalErrorHandler } from "./middleware/globalErrorHandler";
+import { router } from "./modules/user/user.route";
+import { gearRoute } from "./modules/gear/gear.route";
+import { categoryRouter } from "./modules/category/category.route";
 
 const app:Application = express();
 
@@ -25,11 +27,12 @@ app.use(cookieParser())
 
 
 
-app.get("/",async(req:Request,res:Response)=>{
-    const user = await prisma.user.findMany()
-    console.log(user)
-res.send("Hell0 World")
-})
+app.get("/", async (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "GearUp API is running successfully",
+  });
+});
 
 
 app.use("/api/auth",router)

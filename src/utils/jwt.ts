@@ -16,12 +16,15 @@ const verifyToken =(token:string,secret:string)=>{
     const validToken= jwt.verify(token,secret);
     return {
         success:true,
-        data:validToken
+        data:validToken,
+        message:"Token verified successfully"
     }
     } catch (error:any) {
+        const err = error as Error;
         return {
             success:false,
-            message:error.message
+            data:null,
+            message:err.message || "Invalid Token"
         }
     
     }

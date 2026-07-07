@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { catchAsync } from "../utils/catchAsync";
+import { catchAsync } from "../../utils/catchAsync";
 import { gearService } from "./gear.service";
-import { sendResponse } from "../utils/sendResonse";
+import { sendResponse } from "../../utils/sendResonse";
 import httpStatus from "http-status";
 const getAllGear = catchAsync(async(req:Request,res:Response)=>{
 const query = req.query
@@ -17,7 +17,7 @@ sendResponse(res,{
 
 })
 
-const getSingleGear = catchAsync(async()=>{
+const getSingleGear = catchAsync(async(req:Request,res:Response)=>{
 
 })
 

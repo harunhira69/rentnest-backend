@@ -3,6 +3,8 @@ import { catchAsync } from "../utils/catchAsync";
 import { authService } from "./auth.service";
 import { sendResponse } from "../utils/sendResonse";
 import httpStatus from "http-status"
+
+
 const loginUser = catchAsync(async(req:Request,res:Response)=>{
 const payload = req.body;
 
@@ -31,7 +33,7 @@ const {accessToken,refreshToken,user} = await authService.loginUserDB(payload);
 })
 
 const refreshToken = catchAsync(async(req:Request,res:Response,next:NextFunction)=>{
-  const refreshToken = req.cookies.refreshToken;
+  const refreshToken = req.cookies?.refreshToken;
   const {accessToken} = await authService.refreshToken(refreshToken)
 
       res.cookie("accessToken",accessToken,{
@@ -53,7 +55,16 @@ const refreshToken = catchAsync(async(req:Request,res:Response,next:NextFunction
 const getMe = catchAsync(async(req:Request,res:Response)=>{
  const userId = req.user?.id;
  if(!userId){
-    throw new Error("User information not found in request");
+   const error = new Error("User Information Not Found") as Error & {
+    statusCode?:number;
+    errorDetails?:unknown;
+   };
+
+   error.statusCode = httpStatus.UNAUTHORIZED;
+   error.errorDetails = {
+    issue:"Authenticated user ID missing"
+   }
+   throw error;
     
  }
 

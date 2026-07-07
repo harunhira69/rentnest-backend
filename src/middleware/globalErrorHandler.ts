@@ -1,54 +1,105 @@
-import { NextFunction, Request, Response } from "express"
-import httpStatus from "http-status"
-import { Prisma } from "../../generated/prisma/client"
+import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
+import { Prisma } from "../../generated/prisma/client";
 
-export const globalErrorHandler = (err:any,req:Request,res:Response,next:NextFunction)=>{
-    
-   console.log("Error:",err)
+export const globalErrorHandler = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  console.log("Error:", err);
 
-let statusCode;
-let errorMessage = err.message||"Internal server Error";
-let errorName = err.name || "Internal server Error "
+  let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+  let message = err.message || "Internal Server Error";
 
- if(err instanceof Prisma.PrismaClientValidationError){
-   statusCode = httpStatus.BAD_REQUEST;
-   errorMessage  = "You have provided incorrect field type or missing fields"
- }else if(err instanceof Prisma.PrismaClientKnownRequestError){
-    if(err.code === "P2002"){
-        statusCode= httpStatus.BAD_REQUEST,
-        errorMessage= "Duplicate key error"
-    }else if(err.code === "P2003"){
-        statusCode= httpStatus.BAD_REQUEST;
-        errorMessage= "Foreign key constraint failed on the field"
-    }else if (err.code ==="P2025"){
-        statusCode = httpStatus.BAD_REQUEST;
-        errorMessage= "An operation failed because it depends on one or more records that were required but not found."
+  let errorDetails =
+    err.errorDetails || {
+      path: req.originalUrl,
+      method: req.method,
+    };
+
+  if (err.name === "ValidationError") {
+    statusCode = httpStatus.BAD_REQUEST;
+    message = err.message || "Validation failed";
+    errorDetails = err.errorDetails;
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
+    statusCode = httpStatus.BAD_REQUEST;
+    message = "You have provided incorrect field type or missing fields";
+    errorDetails = {
+      type: "PrismaClientValidationError",
+      path: req.originalUrl,
+      method: req.method,
+    };
+  } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      statusCode = httpStatus.CONFLICT;
+      message = "Duplicate value already exists";
+      errorDetails = {
+        code: err.code,
+        target: err.meta?.target,
+      };
+    } else if (err.code === "P2003") {
+      statusCode = httpStatus.BAD_REQUEST;
+      message = "Foreign key constraint failed";
+      errorDetails = {
+        code: err.code,
+        field: err.meta?.field_name,
+      };
+    } else if (err.code === "P2025") {
+      statusCode = httpStatus.NOT_FOUND;
+      message = "Requested resource not found";
+      errorDetails = {
+        code: err.code,
+        cause: err.meta?.cause,
+      };
+    } else {
+      statusCode = httpStatus.BAD_REQUEST;
+      message = "Database request failed";
+      errorDetails = {
+        code: err.code,
+        meta: err.meta,
+      };
     }
- }else if(err instanceof Prisma.PrismaClientInitializationError){
-    if(err.errorCode === "P1000"){
-        statusCode = httpStatus.UNAUTHORIZED;
-        errorMessage = "Authentication failed against database server "
-    } else if ( err.errorCode === "P1001"){
-        statusCode = httpStatus.BAD_REQUEST;
-        errorMessage = "Can't reach database server "
+  } else if (err instanceof Prisma.PrismaClientInitializationError) {
+    if (err.errorCode === "P1000") {
+      statusCode = httpStatus.UNAUTHORIZED;
+      message = "Authentication failed against database server";
+      errorDetails = {
+        code: err.errorCode,
+      };
+    } else if (err.errorCode === "P1001") {
+      statusCode = httpStatus.SERVICE_UNAVAILABLE;
+      message = "Cannot reach database server";
+      errorDetails = {
+        code: err.errorCode,
+      };
+    } else {
+      statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+      message = "Database initialization error";
+      errorDetails = {
+        code: err.errorCode,
+      };
     }
- } else if (err instanceof Prisma.PrismaClientUnknownRequestError){
+  } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    errorMessage = " Error occured during query execution"
- }else if (err instanceof Prisma.PrismaClientRustPanicError){
+    message = "Error occurred during query execution";
+    errorDetails = {
+      type: "PrismaClientUnknownRequestError",
+      path: req.originalUrl,
+      method: req.method,
+    };
+  } else if (err instanceof Prisma.PrismaClientRustPanicError) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    errorMessage = "An unexpected database engine error occurred. Please try again later.";
- }
+    message = "An unexpected database engine error occurred. Please try again later.";
+    errorDetails = {
+      type: "PrismaClientRustPanicError",
+    };
+  }
 
-
-
-
-
-    res.status(statusCode || httpStatus.INTERNAL_SERVER_ERROR).json({
-        success:false,
-        statusCode:statusCode || httpStatus.INTERNAL_SERVER_ERROR,
-        name:errorName,
-        message:errorMessage,
-        error:err.stack
-    })
-}
+  res.status(statusCode).json({
+    success: false,
+    message,
+    errorDetails,
+  });
+};

@@ -1,13 +1,26 @@
 import bcrypt from "bcryptjs";
-import { Prisma } from "../../generated/prisma/client";
-import { prisma } from "../lib/prisma";
-import { RegisterUser } from "./user.interface";
-import config from "../config";
-import { sendResponse } from "../utils/sendResonse";
-import httpStatus from "http-status"
-const registerUserDB = async (payload: RegisterUser) => {
-    const { name, email, password, role, status } = payload;
+import { prisma } from "../../lib/prisma";
 
+import config from "../../config";
+import { sendResponse } from "../../utils/sendResonse";
+import httpStatus from "http-status"
+import { RegisterUser } from "./user.interface";
+const registerUserDB = async (payload: RegisterUser) => {
+    const { name, email, password, role } = payload;
+
+
+    if(role ==="ADMIN"){
+        const error = new Error("You are not allowed to create admin user") as Error & {
+            statusCode?:number;
+            errorDetails?:unknown;
+        };
+        error.statusCode = httpStatus.FORBIDDEN;
+        error.errorDetails = {
+            field:"role",
+            message:"You are not allowed to create admin user"
+        }
+        throw error;
+    }
   
         const hashPassword = await bcrypt.hash(password, Number(config.bycrypt_salt_rounds ?? 10));
 
@@ -16,8 +29,8 @@ const registerUserDB = async (payload: RegisterUser) => {
                 name,
                 email,
                 password: hashPassword,
-                role: role ?? "CUSTOMER",
-                status: status ?? "ACTIVE",
+                role,
+                status:"ACTIVE",
             },
         });
 

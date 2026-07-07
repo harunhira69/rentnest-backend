@@ -1,5 +1,6 @@
-import { Prisma } from "../../generated/prisma/client";
-import { prisma } from "../lib/prisma";
+
+import { Prisma } from "../../../generated/prisma/client";
+import { prisma } from "../../lib/prisma";
 import { GearFilterQuery } from "./gear.interface"
 
 const getAllGearFromDB = async(query:GearFilterQuery)=>{

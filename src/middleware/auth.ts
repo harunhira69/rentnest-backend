@@ -5,6 +5,7 @@ import { jwtUtils } from "../utils/jwt";
 import config from "../config";
 import { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
+import httpStatus from "http-status";
 
 declare global {
   namespace Express {
@@ -20,17 +21,54 @@ declare global {
   }
 }
 
+type DecodeUser = JwtPayload  & {
+  id:string;
+  name:string;
+  email:string;
+  role:Role;
+  status:UserStatus;
+}
+
+const createError = (message:string,statusCode:number,errorDetails?:unknown)=>{
+  const error = new Error(message) as Error & {
+    statusCode?:number;
+    errorDetails?:unknown;
+  };
+  error.statusCode = statusCode;
+  if(errorDetails){
+    error.errorDetails = errorDetails;
+  }
+  return error;
+}
+
 export const auth = (...requiredRoles: Role[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const token =
-      req.cookies?.accessToken
-        ? req.cookies.accessToken
-        : req.headers.authorization?.startsWith("Bearer ")
-        ? req.headers.authorization.split(" ")[1]
-        : req.headers.authorization;
 
-    if (!token) {
-      throw new Error("You are not logged in. Please log in first.");
+
+    // const token =
+    //   req.cookies?.accessToken
+    //     ? req.cookies.accessToken
+    //     : req.headers.authorization?.startsWith("Bearer ")
+    //     ? req.headers.authorization.split(" ")[1]
+    //     : req.headers.authorization;
+
+
+        let token : string | undefined;
+      if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+
+      const authorization = req.headers.authorization;
+     
+         if (!token && authorization?.startsWith("Bearer ")) {
+      token = authorization.split(" ")[1];
+    }
+    
+       if (!token) {
+      throw createError(
+        "You are not logged in. Please log in first.",
+        httpStatus.UNAUTHORIZED
+      );
     }
 
     const verifyToken = jwtUtils.verifyToken(
@@ -38,47 +76,45 @@ export const auth = (...requiredRoles: Role[]) => {
       config.jwt_access_secret as string
     );
 
-    if (!verifyToken.success) {
-      throw new Error(verifyToken.message);
-    }
-
-    const decoded = verifyToken.data as JwtPayload & {
-      id: string;
-      name: string;
-      email: string;
-      role: Role;
-      status: UserStatus;
-    };
-
-    const { id, name, email, role, status } = decoded;
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!user) {
-      throw new Error("User not found. Please log in again.");
-    }
-
-    if (user.status === "SUSPENDED") {
-      throw new Error("Your account has been suspended. Please contact support.");
-    }
-
-    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-      throw new Error(
-        "Forbidden. You don't have permission to access this resource."
+    if (!verifyToken.success || !verifyToken.data) {
+        throw createError(
+        verifyToken.message || "Invalid or expired token",
+        httpStatus.UNAUTHORIZED
       );
     }
 
-    req.user = {
-      id,
-      name,
-      email,
-      role: user.role,
-      status: user.status,
-    };
+    const decoded = verifyToken.data as DecodeUser ;
+
+      if (!decoded.id || !decoded.email || !decoded.role) {
+      throw createError("Invalid token payload", httpStatus.UNAUTHORIZED);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: decoded.id,
+      },
+      select:{
+        id:true,
+        name:true,
+        email:true,
+        role:true,
+        status:true
+      }
+    });
+
+    if (!user) {
+      throw createError("User not found log in again",httpStatus.UNAUTHORIZED);
+    }
+
+    if (user.status === "SUSPENDED") {
+      throw createError("Your account has been suspended. Please contact support.",httpStatus.FORBIDDEN);
+    }
+
+    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+      throw createError("Forbidden. You don't have permission to access this resource.",httpStatus.FORBIDDEN);
+    }
+
+    req.user = user;
 
     next();
   });
