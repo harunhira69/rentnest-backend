@@ -13,6 +13,7 @@ import { globalErrorHandler } from "./middleware/globalErrorHandler";
 import { router } from "./modules/user/user.route";
 import { gearRoute } from "./modules/gear/gear.route";
 import { categoryRouter } from "./modules/category/category.route";
+import { rentalRouter } from "./modules/rental/rental.route";
 
 const app:Application = express();
 
@@ -42,6 +43,9 @@ app.use("/api/auth",authRouter)
 app.use("/api/gear", gearRoute);
 
 app.use("/api/categories",categoryRouter)
+
+
+app.use("/api/rentals", rentalRouter);
 
 
 app.use(notFound)
